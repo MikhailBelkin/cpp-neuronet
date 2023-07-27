@@ -9,15 +9,31 @@
 #include <cassert>
 
 #include <iostream>
+#include <math.h>
 
 
 namespace nuronet {
 
+
+    double fRand(double fMin, double fMax)
+    {
+        double f = (double)rand() / RAND_MAX;
+        return fMin + f * (fMax - fMin);
+    }
+
+
+    using ActivationFunct = double(*)(double);
+
+
     class Neuron {
     public:
 
-        using ActivationFunct = double(*)(double);
 
+        /// <summary>
+        /// Constructor taken pointer on ActivationFunction. If sumple F=1 if X>0.5
+        /// </summary>
+        /// <param name="f">Activation Function</param>
+        Neuron(ActivationFunct f) :f_(f) {}
 
 
         /// <summary>
@@ -35,6 +51,10 @@ namespace nuronet {
             }
         }
 
+        double GetInputState() {
+            return inputstate_;
+        }
+
         /// <summary>
         /// GetBulState returned input state if set
         /// </summary>
@@ -42,12 +62,6 @@ namespace nuronet {
         bool GetBoolState() {
             return inputstate_ == 1;
         }
-
-        /// <summary>
-        /// Constructor taken pointer on ActivationFunction. If sumple F=1 if X>0.5
-        /// </summary>
-        /// <param name="f">Activation Function</param>
-        Neuron(ActivationFunct f) :f_(f) {}
 
 
         /// <summary>
@@ -60,29 +74,108 @@ namespace nuronet {
 
 
         /// <summary>
+        /// Returns vector of weights of Neuron
+        /// </summary>
+        /// <returns>return vector<<double> wight all weights</returns>
+        const std::vector<double>& GetWeights() {
+            return weights_;
+
+
+        }
+
+
+        /// <summary>
+        /// Neuron weight correction
+        /// </summary>
+        /// <param name="wheight_index">int index of parent neuron, double differeces</param>
+        /// <param name="diff"></param>
+        void WeightCorretion(int weight_index, double diff) {
+            weights_[weight_index] -= diff;
+        }
+
+
+        /// <summary>
         /// Activate neuron - activate work of net of nerons from child to parents. Started from index 0 - decision maked main neuron from last layer
         /// All links activate recursive
         /// </summary>
-        /// <param name="index"></param>
+        /// <param name="index">index - id of parent neuron</param>
         /// <returns>return double x = ActivationFunc*weight</returns>
         double Activate(int index) {
             double result = 0;
 
-            //std::string tab(index * 8, ' ');
-            //std::cout <<tab << "Activate " << GetId() << "parents =" << index << std::endl;
 
-            for (auto n : links_) {
-                // std::cout << tab << "Trying to activate next level:"<<std::endl;
-                result += n->Activate(GetId());
-                // std::cout << tab << " result = "<<result << std::endl;
+            if (links_.size()) { // not layer one - getting inputstate from previos layer;
+                for (auto n : links_) {
+                    // std::cout << tab << "Trying to activate next level:"<<std::endl;
+                    result += n->Activate(GetId());
+                    // std::cout << tab << " result = "<<result << std::endl;
+                }
+                inputstate_ = f_(result); //save result as inputstate as cash_value;
+            }
+            
+            
+
+           //  std::cout << tab << "Input State is: " << result << ",  wheight=" << weights_[index] << " Activation function return=" << f_(result) * weights_[index] << std::endl;;
+            return inputstate_ * weights_[index];
+
+
+        }
+
+
+        double Learn(int parent_index,  double weights_delta, double learning_rate) {
+            
+            
+
+            double error_diff;
+            double weights_delta_for_next_layer;
+            if (parent_index!=-1) { //Magic number. Not a decision neuron
+                
+                //std::cout << "weight[" << parent_index << "]=" << weights_[parent_index]<<std::endl;
+
+              //  std::cout<<"Old weight="<< weights_[parent_index]<<" new weight=";
+                weights_[parent_index] -= weights_delta*inputstate_*learning_rate;
+                
+              //  std::cout << weights_[parent_index] << " weight diff=" << weights_delta * inputstate_ * learning_rate << std::endl;
+                error_diff = weights_[parent_index] * weights_delta;
+              //  std::cout << "weight delta for next layer=" << weights_delta << " error diff=" << error_diff << std::endl;
+                weights_delta_for_next_layer = error_diff;
+
+            }
+            else {
+                weights_delta_for_next_layer = weights_delta;
+                parent_index = 0;//return_paren_index to normal from -1;
             }
 
-            result += inputstate_;//if layer1 inputs is from inputsstate oterwise inputate =0 , and will add nothing
+            if (links_.size()) { //layer0 dont have links;
+                inputstate_ = 0;
+                
 
-            // std::cout << tab << "Input State is: " << result << ",  wheight=" << weights_[index] << " Activation function return=" << f_(result) * weights_[index] << std::endl;;
-            return f_(result) * weights_[index];
+                for (auto n : links_) {
+
+                    inputstate_ += n->Learn(GetId(),  weights_delta_for_next_layer, learning_rate);
+
+                }
+                inputstate_ = f_(inputstate_);
+            }
+            return  inputstate_ * weights_[parent_index];
+            
+
+        }
 
 
+        /// <summary>
+        /// Reset all weights in random values
+        /// </summary>
+        void ResetAllWeights(){
+            for (auto w : weights_) {
+                w = fRand(0, 10);
+            }
+            for (auto n : links_) {
+                
+                n->ResetAllWeights();
+                
+            }
+        
         }
 
         friend class NeuronsLayer;
@@ -114,6 +207,8 @@ namespace nuronet {
         int GetId() {
             return id_;
         }
+
+
 
 
         int id_ = 0; //id of current neuron needed for recursion
@@ -209,7 +304,11 @@ namespace nuronet {
         /// input signals format
         /// </summary>
         struct InputSignals {
-            std::vector<bool> bool_signals;
+            InputSignals(std::vector<bool>& v):bool_signals(v) {
+                
+            }
+            
+            std::vector<bool>& bool_signals;
         };
 
 
@@ -225,7 +324,7 @@ namespace nuronet {
         /// <param name="inp">SkyNet::InputSignals.signals - vector<bool></param>
         /// <returns></returns>
         /// 
-        bool GetDecision(InputSignals& inp) {
+        double GetDecision(InputSignals& inp) {
 
             if (inp.bool_signals.size() != layers_[0].GetNeuronCount()) {
                 //count of input signals must be equal number of neurons in input layer
@@ -241,6 +340,66 @@ namespace nuronet {
         }
 
 
+        void ResetAllWeights() {
+            decision_->ResetAllWeights();
+        }
+
+
+        void PrintDump() {
+            std::cout << "********************Print dumping od Network:" << std::endl;
+            int layer_num = 0;
+            for (auto l : layers_) {
+                std::cout << "--------Layer " << layer_num++ << ":" << std::endl;
+                for (int i = 0; i < l.GetNeuronCount(); i++) {
+                    std::cout << "Neuron[" << i << "]: ";
+                    auto weights = l.GetNeuron(i).GetWeights();
+                    int weights_count = 0;
+                    for (auto w : weights) {
+                        std::cout << "Wheight[" << weights_count++ << "]=" << w<<" ; ";
+                    }
+                    std::cout << "Inputstate=" << l.GetNeuron(i).GetInputState() << std::endl;
+                }
+            }
+            std::cout << "*************end of dump***************" << std::endl;
+
+        }
+
+
+
+        void Learning(std::vector<InputSignals>& inp, std::vector<double> expected_decision, int epoche_num, double learning_rate) {
+
+            if (inp.size() != expected_decision.size()) {
+                assert("Size of vectors for learning is not equal");
+
+            }
+
+
+
+
+            for (auto x : inp) {
+                if (x.bool_signals.size() != layers_[0].GetNeuronCount()) {
+                    //count of input signals must be equal number of neurons in input layer
+                    assert("Input signals not mathing with layer1");
+                }
+            }
+
+            ResetAllWeights();
+
+
+            for (int epoche = 0; epoche < epoche_num; epoche++) {
+               for (int i = 0; i < inp.size();i++) {
+                    double actual_decision = GetDecision(inp[i]);
+                    double error_decision = (actual_decision - expected_decision[i]);
+                    double weights_delta = error_decision * (actual_decision * (1 - actual_decision));
+                   
+                    double result_of_learning = decision_->Learn(-1, weights_delta, learning_rate);
+                    
+                }
+            }
+
+        }
+
+        
         /// <summary>
         /// AddLayer - adds new layer into net
         /// </summary>
