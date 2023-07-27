@@ -8,7 +8,14 @@ class Neuron
 class NeuronsLayer
 class SkyNet
 
-decisioin used Activation function result * weight.
-
+Version 1:
 weghts input by user
 Mashine learning is not avalable
+
+Version 2:
+Network has method Learning now.
+You have to make input dataset and exepected values for each case, next call Learning.
+For Decision may be use sigma function only, because learning uses derivative from this function.
+
+
+
