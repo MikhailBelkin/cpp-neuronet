@@ -25,7 +25,7 @@ Now all project build with CMake.
 As example Added learning for MNIST dataset for hanwritten digits recognising. MNIST datsets(http://yann.lecun.com/exdb/mnist/) is train-images.idx3-ubyte and train-images.idx3-ubyte train-labels.idx1-ubyte.train-labels.idx1-ubyte 
 
 
-Whats new in future versions?
+What will new in future versions?
 Fast learning. Structure of Neural network was ctreated just for example neural working. Because this reason learnin is slow. I will fix it
 
 
