@@ -22,7 +22,7 @@ Neural network was refactored for many decisions, not only one. Now Neural netwo
 Serialisation of wheiths coefficients was added. There is possiblity to save wheight after learnin. So Neural Network need once to be learning and then just use saved wgeights.
 Protobuf library was used for serialisation.
 Now all project build with CMake.
-As example Added learning for MNIST dataset for hanwritten digits recognising. MNIST datsets is train-images.idx3-ubyte and train-images.idx3-ubyte train-labels.idx1-ubyte.train-labels.idx1-ubyte 
+As example Added learning for MNIST dataset for hanwritten digits recognising. MNIST datsets(http://yann.lecun.com/exdb/mnist/) is train-images.idx3-ubyte and train-images.idx3-ubyte train-labels.idx1-ubyte.train-labels.idx1-ubyte 
 
 
 Whats new in future versions?
