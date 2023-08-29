@@ -1,0 +1,25 @@
+
+syntax = "proto3";
+
+package neural_serialization;
+
+
+message Neuron{
+ 	uint32 id = 1;
+	double input_state = 2;
+	uint32 wieghts_num = 3;
+	repeated double weights = 4;
+}
+
+
+message Layer{
+ 	uint32 neurons_num = 1;
+	repeated Neuron neurons = 2;
+}
+
+message NeuralNet{
+ 	uint32 layers_num = 1;
+	repeated Layer layers = 2;
+}
+
+
